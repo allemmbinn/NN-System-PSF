@@ -254,7 +254,7 @@ class PredictiveSafetyFilter:
         nx = self.nx
         nu = self.nu
 
-        x0 = self.x_init.numpy()
+        x0 = self.x_init.cpu().numpy()
         x0 = x0.flatten()
 
         if self.sigma_w is None:
@@ -289,21 +289,21 @@ class PredictiveSafetyFilter:
         if A_t is None:
             A_mat = block_diag(np.kron(np.eye(T), A), np.zeros((nx, nx)))
         else:
-            A_t_numpy = [A_t[k].numpy() for k in range(T)]
+            A_t_numpy = [A_t[k].cpu().numpy() for k in range(T)]
             A_mat = block_diag(*A_t_numpy)
             A_mat = block_diag(A_mat, np.zeros((nx, nx)))
 
         if B_t is None:
             B_mat = block_diag(np.kron(np.eye(T), B), np.zeros((nx, nu)))
         else:
-            B_t_numpy = [B_t[k].numpy() for k in range(T)]
+            B_t_numpy = [B_t[k].cpu().numpy() for k in range(T)]
             B_mat = block_diag(*B_t_numpy)
             B_mat = block_diag(B_mat, np.zeros((nx, nu)))
 
         if c_t is None:
             c_vec = np.zeros((T+1)*nx)
         else:
-            c_t_numpy = [c_t[k].numpy() for k in range(T)]
+            c_t_numpy = [c_t[k].cpu().numpy() for k in range(T)]
             c_vec = np.concatenate(c_t_numpy)
             c_vec = np.concatenate((x0,  c_vec))
 
@@ -323,7 +323,7 @@ class PredictiveSafetyFilter:
             uA, ubias, lA, lbias = linear_bounds[t]['uA'], linear_bounds[t]['ubias'], linear_bounds[t]['lA'], \
                                    linear_bounds[t]['lbias']
             uA, ubias, lA, lbias = uA.squeeze(0), ubias.squeeze(0), lA.squeeze(0), lbias.squeeze(0)
-            uA, ubias, lA, lbias = uA.numpy(), ubias.numpy(), lA.numpy(), lbias.numpy()
+            uA, ubias, lA, lbias = uA.cpu().numpy(), ubias.cpu().numpy(), lA.cpu().numpy(), lbias.cpu().numpy()
 
             if self.augmented_nn_input:
                 # if (x, u) is the input of the nn dynamics
@@ -374,8 +374,8 @@ class PredictiveSafetyFilter:
 
         # trust region constraints
         u_ub, u_lb = local_domain[0]['u_ub'], local_domain[0]['u_lb']
-        u_ub = u_ub.numpy().flatten()
-        u_lb = u_lb.numpy().flatten()
+        u_ub = u_ub.cpu().numpy().flatten()
+        u_lb = u_lb.cpu().numpy().flatten()
         eye_mat = np.eye(nu)
 
         t = 0
@@ -399,8 +399,8 @@ class PredictiveSafetyFilter:
             # consider state constraints
             x_ub, x_lb = local_bds['x_ub'], local_bds['x_lb']
 
-            x_ub = x_ub.numpy().flatten()
-            x_lb = x_lb.numpy().flatten()
+            x_ub = x_ub.cpu().numpy().flatten()
+            x_lb = x_lb.cpu().numpy().flatten()
 
             # create slack variables
             x_lb_slack = cp.Variable(x_lb.shape[0])
@@ -422,8 +422,8 @@ class PredictiveSafetyFilter:
 
             # consider control input constraints
             u_ub, u_lb = local_bds['u_ub'], local_bds['u_lb']
-            u_ub = u_ub.numpy().flatten()
-            u_lb = u_lb.numpy().flatten()
+            u_ub = u_ub.cpu().numpy().flatten()
+            u_lb = u_lb.cpu().numpy().flatten()
             eye_mat = np.eye(nu)
 
             v = v_vec[t*nu:(t+1)*nu]

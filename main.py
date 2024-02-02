@@ -15,8 +15,8 @@ np.random.seed(1234)
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # pendulum parameters
-    params_true = torch.tensor((9.81, 0.75, 2.0))
+    # pendulum parameters - (g,m,l)
+    params_true = torch.tensor((9.81, 0.75, 2.0)).to(device)
     sampling_rate = 0.05
     dx = LinearModel(params_true, sampling_rate)
     nn_model = dx.nn.net.to(device)
@@ -54,26 +54,26 @@ if __name__ == '__main__':
 
     theta_goal_array = torch.zeros((T,))
     if test_case_num == 1:
-        x0 = torch.tensor([1.0, -2.1])
-        goal_weights = torch.Tensor((1., 0.1))
+        x0 = torch.tensor([1.0, -2.1]).to(device)
+        goal_weights = torch.Tensor((1., 0.1)).to(device)
         ctrl_penalty = 0.0001
         theta_goal_array[:int((T - 1) / 2)] = np.deg2rad(120.0)
         theta_goal_array[int((T - 1) / 2):T] = np.deg2rad(-50.0)
     elif test_case_num == 2:
-        x0 = torch.tensor([-1.5, -1.5])
-        goal_weights = torch.Tensor((1., 0.1))
+        x0 = torch.tensor([-1.5, -1.5]).to(device)
+        goal_weights = torch.Tensor((1., 0.1)).to(device)
         ctrl_penalty = 0.0001
         theta_goal_array[:int((T - 1) / 2)] = np.deg2rad(-150.0)
         theta_goal_array[int((T - 1) / 2):T] = np.deg2rad(40.0)
     elif test_case_num == 3:
-        x0 = torch.tensor([-1.5, -2.0])
-        goal_weights = torch.Tensor((1., 1e-4))
+        x0 = torch.tensor([-1.5, -2.0]).to(device)
+        goal_weights = torch.Tensor((1., 1e-4)).to(device)
         ctrl_penalty = 5e-5
         theta_goal_array[:int((T - 1) / 2)] = np.deg2rad(-100.0)
         theta_goal_array[int((T - 1) / 2):T] = np.deg2rad(-180.0)
     elif test_case_num == 4:
-        x0 = torch.tensor([1.5, 1.0])
-        goal_weights = torch.Tensor((1., 1e-4))
+        x0 = torch.tensor([1.5, 1.0]).to(device)
+        goal_weights = torch.Tensor((1., 1e-4)).to(device)
         ctrl_penalty = 1e-4
         theta_goal_array[:int((T - 1) / 2)] = np.deg2rad(100.0)
         theta_goal_array[int((T - 1) / 2):T] = np.deg2rad(180.0)
@@ -84,8 +84,8 @@ if __name__ == '__main__':
     traj    = dyn_system.simulate_dynamics(mpc_T, x0)
     u_init  = None
 
-    q = torch.cat((goal_weights, ctrl_penalty * torch.ones(dx.n_ctrl)))
-    Q = torch.diag(q).unsqueeze(0).unsqueeze(0).repeat(mpc_T, 1, 1, 1)
+    q = torch.cat((goal_weights, ctrl_penalty * torch.ones(dx.n_ctrl).to(device))).to(device)
+    Q = torch.diag(q).unsqueeze(0).unsqueeze(0).repeat(mpc_T, 1, 1, 1).to(device)
 
     state_log = np.zeros((T, 2))
     control_log = np.zeros((T, 1))
@@ -99,9 +99,9 @@ if __name__ == '__main__':
     for t in tqdm(range(T)):
         start_time = time.time()
 
-        goal_state = torch.Tensor((theta_goal_array[t], 0.))
-        px = -torch.sqrt(goal_weights) * goal_state
-        p = torch.cat((px, torch.zeros(dx.n_ctrl)))
+        goal_state = torch.Tensor((theta_goal_array[t], 0.)).to(device)
+        px = -torch.sqrt(goal_weights).to(device) * goal_state
+        p = torch.cat((px, torch.zeros(dx.n_ctrl).to(device)))
         p = p.unsqueeze(0).repeat(mpc_T, 1, 1)
 
         nominal_states, nominal_actions, nominal_objs = MPC(
@@ -117,8 +117,8 @@ if __name__ == '__main__':
             max_linesearch_iter=dx.max_linesearch_iter,
             grad_method=GradMethods.AUTO_DIFF,
             eps=1e-2,
-            state_con_A=torch.from_numpy(X.A),
-            state_con_b=torch.from_numpy(X.b),
+            state_con_A=torch.from_numpy(X.A).to(device),
+            state_con_b=torch.from_numpy(X.b).to(device),
             soft_const_opt=soft_constraint_option,
             soft_const_multiplier=1e5,
         )(x, QuadCost(Q, p), dx)
@@ -162,12 +162,12 @@ if __name__ == '__main__':
         else:
             next_action = nominal_actions[0]
 
-        u_init      = torch.cat((nominal_actions[1:], torch.zeros(1, 1, dx.n_ctrl)), dim=0)
+        u_init      = torch.cat((nominal_actions[1:], torch.zeros(1, 1, dx.n_ctrl).to(device)), dim=0).to(device)
         u_init[-2]  = u_init[-3]
 
         angle = x[0][0].detach()
         angle_rate = x[0][1].detach()
-        state_log[t, :] = np.array([angle.numpy(), angle_rate.numpy()])
-        control_log[t] = np.array([next_action[0].detach().numpy()])
+        state_log[t, :] = np.array([angle.cpu().numpy(), angle_rate.cpu().numpy()])
+        control_log[t] = np.array([next_action[0].cpu().numpy()])
 
         x = dx(x, next_action)+2*(torch.rand(x.size()).to(device)-0.5)*sigma_w

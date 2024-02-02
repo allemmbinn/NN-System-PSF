@@ -33,8 +33,6 @@ An example of applying the predictive safety filter on a pendulum system is give
 ## Problem Formulation
 We consider designing a predictive safety filter for an uncertain NN dynamical system by solving the following **constrained, robust optimal control problem**:
 
-<img src="https://github.com/ShaoruChen/web-materials/blob/main/PSF_CDC_23/psf_formulation.png" width=360, height=160> 
-
 where $\pi(\cdot)$ denotes a reference policy, $Ax + Bu$ denotes the linear component of the dynamics, $f(x, u)$ is a **neural network** capturing the nonlinear dynamics, and $w$ models the uncertainty effects. The PSF aims to find control inputs that make the uncertain NN dynamics safe (in terms of constraint satisfaction) over a finite horizon. 
 
 ### Challenges
@@ -46,8 +44,6 @@ Solving the above PSF problem has several challenges:
 ### Method
 We first over-approximate the nonlinear NN dynamics $f(x, u)$ by **uncertain linear dynamics** and then solve a robust linear MPC problem. The main algorithm is summarized below:
 
-<img src="https://github.com/ShaoruChen/web-materials/blob/main/PSF_CDC_23/psf_algorithm.png" width=400, height=400> 
-
 We use [auto-LiRPA](https://github.com/Verified-Intelligence/auto_LiRPA) for NN dynamics over-approximation and [SLS MPC](https://github.com/ShaoruChen/Polytopic-SLSMPC) to solve the robust linear MPC problem due to its tightness. 
 
 ### Main Features
@@ -57,10 +53,6 @@ Our method has the following benefits.
 
 ### Example
 On a pendulum system example, we demonstrated that the proposed PSF significantly improved the safety of the iLQR-based reference controller. See our paper for details. 
-
-<img src="https://github.com/ShaoruChen/web-materials/blob/main/PSF_CDC_23/psf_fig.png" width=600, height=400> 
-
-
 
 ## Third-party dependence
 We use [auto-LiRPA](https://github.com/Verified-Intelligence/auto_LiRPA) to extract bounds on the NN dynamics locally. 

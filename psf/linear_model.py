@@ -49,20 +49,22 @@ class LinearModel(nn.Module):
         self.dt             = dt
 
         self.nn             = MLP()
-        model_path          = "./data/pendulum_model_Oct23_1.pth"
+        model_path          = "./data/pendulum_model.pth"
         checkpoint          = torch.load(model_path, map_location=torch.device('cpu'))
         self.nn.load_state_dict(checkpoint['state_dict'])
 
     def forward(self, x, u):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         squeeze = x.ndimension() == 1
         if squeeze:
             x = x.unsqueeze(0)
         states  = x
         force   = u
 
-        model   = states @ torch.Tensor.float(torch.from_numpy(self.Ad)).T + force @ torch.Tensor.float(torch.from_numpy(self.Bd)).T
+        model   = states @ torch.Tensor.float(torch.from_numpy(self.Ad).to(device)).T + force @ torch.Tensor.float(torch.from_numpy(self.Bd).to(device)).T
+        model   = model.to(device)
         y       = torch.cat((x, u), dim=1)
-        nn_output = self.nn.forward(y)
+        nn_output = self.nn.forward(y).to(device)
 
         return model + nn_output
 
